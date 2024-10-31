@@ -11,7 +11,7 @@ export class UpdateUserDto {
   @IsNotEmpty({ message: message.isEmpty })
   @Length(0, 50, { message: message.maxLength(50) })
   @Length(2, 150, { message: message.minLength(2) })
-  name?: string;
+  nome?: string;
 
   @IsOptional()
   @IsNotEmpty({ message: message.isEmpty })

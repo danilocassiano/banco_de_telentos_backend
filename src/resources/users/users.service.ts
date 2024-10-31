@@ -1,84 +1,66 @@
 import {
     ConflictException,
-    HttpException,
-    HttpStatus,
+    NotFoundException,
+    BadRequestException,
     Injectable,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../../prisma/prisma.service';
 import { User } from '@prisma/client';
 import { hashSync as bcryptHashSync } from 'bcrypt';
 import { CreateUserDto } from './dto/create-users.dto';
 import { UpdateUserDto } from './dto/update-users.dto';
 
-
 @Injectable()
 export class UsersService {
     constructor(private readonly prisma: PrismaService) { }
 
-    async create(newUser: CreateUserDto): Promise<User> {
-        const hashPassword = bcryptHashSync(newUser.password, 10);
+    private hashPassword(password: string): string {
+        return bcryptHashSync(password, 10);
+    }
 
+    async create(newUser: CreateUserDto): Promise<User> {
         const existingUser = await this.prisma.user.findUnique({
             where: { email: newUser.email },
         });
 
         if (existingUser) {
-            throw new ConflictException(
-                `Usuário com o e-mail ${newUser.email} já existe.`,
-            );
+            throw new ConflictException(`Usuário com o e-mail ${newUser.email} já existe.`);
         }
 
-        return await this.prisma.user.create({
+        return this.prisma.user.create({
             data: {
                 ...newUser,
-                password: hashPassword,
+                password: this.hashPassword(newUser.password),
             },
         });
     }
 
-    async findOne(id: number, deletaSenha: boolean = true): Promise<User> {
+    async findOne(id: number, hidePassword = true): Promise<User> {
         const user = await this.prisma.user.findUnique({
-            where: {
-                id: id,
-            },
+            where: { id },
         });
 
-        if (!user)
-            throw new HttpException(
-                `Usuario com '${id}' não foi encontrado.`,
-                HttpStatus.NOT_FOUND,
-            );
+        if (!user) throw new NotFoundException(`Usuário com ID '${id}' não encontrado.`);
 
-        deletaSenha && delete user.password;
-
+        if (hidePassword) delete user.password;
         return user;
     }
 
     async update(id: number, body: UpdateUserDto): Promise<User> {
-        const userUpdate = await this.prisma.user.findUnique({
-            where: { id },
-        });
+        const userToUpdate = await this.prisma.user.findUnique({ where: { id } });
 
-        if (!userUpdate) {
-            throw new HttpException(
-                `Usuário com código '${id}' não encontrado.`,
-                HttpStatus.NOT_FOUND,
-            );
+        if (!userToUpdate) {
+            throw new NotFoundException(`Usuário com ID '${id}' não encontrado.`);
         }
 
         if (body.password) {
-            body.password = bcryptHashSync(body.password, 10);
+            body.password = this.hashPassword(body.password);
         }
 
         if (body.email) {
-            const existingUser = await this.prisma.user.findUnique({
-                where: { email: body.email },
-            });
-
+            const existingUser = await this.prisma.user.findUnique({ where: { email: body.email } });
             if (existingUser && existingUser.id !== id) {
-                throw new ConflictException(
-                    `Usuário com o e-mail ${body.email} já existe.`,
-                );
+                throw new ConflictException(`Usuário com o e-mail ${body.email} já existe.`);
             }
         }
 
@@ -88,57 +70,33 @@ export class UsersService {
         });
 
         delete updatedUser.password;
-
         return updatedUser;
     }
 
     async delete(id: number): Promise<void> {
-        const userCheck = await this.prisma.user.findUnique({
-            where: { id },
-        });
-
-        if (!userCheck)
-            throw new HttpException(
-                `Usuário com código '${id}' não encontrado.`,
-                HttpStatus.NOT_FOUND,
-            );
-
-        await this.prisma.user.delete({
-            where: { id },
-        });
+        await this.findOne(id);  // Validação de existência
+        await this.prisma.user.delete({ where: { id } });
     }
 
-    async findAll(page: number, limit: number): Promise<User[]> {
+    async findAll(page = 1, limit = 10): Promise<Partial<User>[]> {
         if (page < 1 || limit < 1) {
-            throw new HttpException(
-                'A Pagina ou Limite precisa ser positivo.',
-                HttpStatus.BAD_REQUEST,
-            );
+            throw new BadRequestException('Página e limite devem ser valores positivos.');
         }
 
         const skip = (page - 1) * limit;
+        const users = await this.prisma.user.findMany({ skip, take: limit });
 
-        const users = await this.prisma.user.findMany({
-            skip,
-            take: limit,
-        });
-
-        return users;
-    }
-
-    async findByEmail(email: string): Promise<User | null> {
-        return await this.prisma.user.findUnique({
-            where: {
-                email: email,
-            },
+        return users.map(user => {
+            const { password, ...rest } = user;
+            return rest;  // Exclui a senha de cada usuário na resposta
         });
     }
 
-    async findByNome(nome: string): Promise<User | null> {
-        return await this.prisma.user.findFirst({
-          where: {
-            nome: nome,
-          },
-        });
-      }
+    findByEmail(email: string): Promise<User | null> {
+        return this.prisma.user.findUnique({ where: { email } });
+    }
+
+    findByNome(nome: string): Promise<User | null> {
+        return this.prisma.user.findFirst({ where: { nome } });
+    }
 }

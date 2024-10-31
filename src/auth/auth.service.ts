@@ -3,8 +3,8 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { compareSync as bcryptCompareSync } from 'bcrypt';
-import { LoginUsersDto } from 'src/resources/users/dto/login-users.dto';
-import { UsersService } from 'src/resources/users/users.service';
+import { LoginUsersDto } from '../resources/users/dto/login-users.dto';
+import { UsersService } from '../resources/users/users.service';
 
 
 @Injectable()
