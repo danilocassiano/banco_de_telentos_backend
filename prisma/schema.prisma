@@ -1,0 +1,26 @@
+datasource db {
+  provider = "postgresql" 
+  url      = env("DATABASE_URL") 
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  nome     String
+  email    String @unique
+  password String
+}
+
+model Profissional {
+  id            Int      @id @default(autoincrement())
+  nome          String
+  cpf           String
+  email         String   @unique
+  habilidades   String
+  parecer       String
+  grauAcademico String   
+  curriculum     String?  // Este campo pode armazenar o caminho do arquivo
+}
