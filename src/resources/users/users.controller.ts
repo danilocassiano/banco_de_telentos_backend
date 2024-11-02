@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
   HttpException,
   HttpStatus,
   Param,
@@ -19,8 +20,10 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @HttpCode(201)
   async create(@Body() user: CreateUserDto) {
-    return await this.usersService.create(user);
+    await this.usersService.create(user);
+    return;
   }
 
   @Get('/:id')
