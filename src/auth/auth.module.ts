@@ -4,11 +4,13 @@ import { AuthController } from './auth.controller';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { UsersModule } from 'src/resources/users/users.module';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }), // Torna o ConfigModule global
     UsersModule,
+    PrismaModule,
     JwtModule.registerAsync({
       global: true,
       imports: [ConfigModule],

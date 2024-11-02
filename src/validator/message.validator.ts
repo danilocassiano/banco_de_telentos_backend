@@ -1,6 +1,10 @@
 import { ValidationArguments } from 'class-validator';
 
 const message = {
+  isLength:
+    (min: number, max: number) =>
+    ({ property }: ValidationArguments) =>
+      `O campo ${property} deve ter no mínimo ${min} e no maximo ${max} caracteres`,
   maxLength:
     (len: number) =>
     ({ property }: ValidationArguments) =>
