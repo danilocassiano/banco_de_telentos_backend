@@ -5,6 +5,7 @@ import { compareSync as bcryptCompareSync } from 'bcrypt';
 import { LoginUsersDto } from '../resources/users/dto/login-users.dto';
 import { UsersService } from '../resources/users/users.service';
 import { PrismaService } from 'src/prisma/prisma.service';
+import { User } from '@prisma/client';
 @Injectable()
 export class AuthService {
   private jwtExpirationTimeInSeconds: number;
@@ -20,11 +21,16 @@ export class AuthService {
     );
   }
 
-  async signIn(loginDto: LoginUsersDto): Promise<{ token: string }> {
+  async signIn(
+    loginDto: LoginUsersDto,
+  ): Promise<{ token: string; user: User }> {
     const { username, password } = loginDto;
 
     // Buscar o usuário pelo email ou nome
     const foundUser = await this.prismaService.user.findFirst({
+      include: {
+        Departamento: true,
+      },
       where: {
         OR: [
           {
@@ -46,6 +52,6 @@ export class AuthService {
       expiresIn: `${this.jwtExpirationTimeInSeconds}s`,
     });
 
-    return { token };
+    return { token, user: foundUser };
   }
 }
